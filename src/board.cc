@@ -214,7 +214,7 @@ std::string Board::getStringRep() const {
           break;
         case 4:
           stringRep += "        En Passant Square: ";
-          stringRep += _enPassant == ZERO ? "-" : Move::indexToNotation(_bitscanForward(_enPassant));
+          stringRep += _enPassant == ZERO ? "-" : MoveUtils::indexToNotation(_bitscanForward(_enPassant));
           break;
       }
       stringRep += "\n" + std::to_string(--rank) + "  ";
@@ -305,7 +305,7 @@ void Board::setToFen(std::string fenString) {
 
   // En passant target square
   fenStream >> token;
-  _enPassant = token == "-" ? ZERO : ONE << Move::notationToIndex(token);
+  _enPassant = token == "-" ? ZERO : ONE << MoveUtils::notationToIndex(token);
 
   // Halfmove clock
   fenStream >> _halfmoveClock;
@@ -440,32 +440,33 @@ void Board::doMove(Move move) {
     _zKey.clearEnPassant();
     _enPassant = ZERO;
   }
-  int from = move.getFrom();
-  int to = move.getTo();
+  int m = move.move;
+  int from = getSQVFrom(m);
+  int to = getSQVTo(m);
   // Handle move depending on what type of move it is
-  unsigned int flags = move.getFlags();
+  unsigned int flags = getTypeFlag(m);
   if (!flags) {
     // No flags set, not a special move
-    _movePiece(_activePlayer, move.getPieceType(), from, to);
-  } else if ((flags & Move::CAPTURE) && (flags & Move::PROMOTION)) { // Capture promotion special case
+    _movePiece(_activePlayer, getPieceType(m), from, to);
+  } else if ((flags & CAPTURE) && (flags & PROMOTION)) { // Capture promotion special case
     // Remove captured Piece
-    PieceType capturedPieceType = move.getCapturedPieceType();
+    PieceType capturedPieceType = getCapPiece(m);
     _removePiece(getInactivePlayer(), capturedPieceType, to);
 
     // Remove promoting pawn
     _removePiece(_activePlayer, PAWN, from);
 
     // Add promoted piece
-    PieceType promotionPieceType = move.getPromotionPieceType();
+    PieceType promotionPieceType = getPromoteTo(m);
     _addPiece(_activePlayer, promotionPieceType, to);
-  } else if (flags & Move::CAPTURE) {
+  } else if (flags & CAPTURE) {
     // Remove captured Piece
-    PieceType capturedPieceType = move.getCapturedPieceType();
+    PieceType capturedPieceType = getCapPiece(m);
     _removePiece(getInactivePlayer(), capturedPieceType, to);
 
     // Move capturing piece
-    _movePiece(_activePlayer, move.getPieceType(), from, to);
-  } else if (flags & Move::KSIDE_CASTLE) {
+    _movePiece(_activePlayer, getPieceType(m), from, to);
+  } else if (flags & KSIDE_CASTLE) {
     // Move the king
     _movePiece(_activePlayer, KING, from, to);
 
@@ -475,7 +476,7 @@ void Board::doMove(Move move) {
     } else {
       _movePiece(BLACK, ROOK, h8, f8);
     }
-  } else if (flags & Move::QSIDE_CASTLE) {
+  } else if (flags & QSIDE_CASTLE) {
     // Move the king
     _movePiece(_activePlayer, KING, from, to);
 
@@ -485,7 +486,7 @@ void Board::doMove(Move move) {
     } else {
       _movePiece(BLACK, ROOK, a8, d8);
     }
-  } else if (flags & Move::EN_PASSANT) {
+  } else if (flags & EN_PASSANT) {
     // Remove the correct pawn
     if (_activePlayer == WHITE) {
       _removePiece(BLACK, PAWN, to - 8);
@@ -494,15 +495,15 @@ void Board::doMove(Move move) {
     }
 
     // Move the capturing pawn
-    _movePiece(_activePlayer, move.getPieceType(), from, to);
-  } else if (flags & Move::PROMOTION) {
+    _movePiece(_activePlayer, getPieceType(m), from, to);
+  } else if (flags & PROMOTION) {
     // Remove promoted pawn
     _removePiece(_activePlayer, PAWN, from);
 
     // Add promoted piece
-    _addPiece(_activePlayer, move.getPromotionPieceType(), to);
-  } else if (flags & Move::DOUBLE_PAWN_PUSH) {
-    _movePiece(_activePlayer, move.getPieceType(), from, to);
+    _addPiece(_activePlayer, getPromoteTo(m), to);
+  } else if (flags & DOUBLE_PAWN_PUSH) {
+    _movePiece(_activePlayer, getPieceType(m), from, to);
 
     // Set square behind pawn as _enPassant
     unsigned int enPasIndex = _activePlayer == WHITE ? to - 8 : to + 8;
@@ -511,7 +512,7 @@ void Board::doMove(Move move) {
   }
 
   // Halfmove clock reset on pawn moves or captures, incremented otherwise
-  if (move.getPieceType() == PAWN || move.getFlags() & Move::CAPTURE) {
+  if (getPieceType(m) == PAWN || getTypeFlag(m) & CAPTURE) {
     _halfmoveClock = 0;
   } else {
     _halfmoveClock++;
@@ -522,7 +523,7 @@ void Board::doMove(Move move) {
   }
 
   // Update pawn structure ZKey if this is a pawn move
-  if (move.getPieceType() == PAWN) {
+  if (getPieceType(m) == PAWN) {
     _pawnStructureZkey.movePiece(_activePlayer, PAWN, from, to);
   }
 
@@ -559,12 +560,12 @@ bool Board::_squareUnderAttack(Color color, int squareIndex) const {
 }
 
 void Board::_updateCastlingRightsForMove(Move move) {
-  unsigned int flags = move.getFlags();
-
+  unsigned int flags = getTypeFlag(move.move);
+  int m = move.move;
   // Update castling flags if rooks have been captured
-  if (flags & Move::CAPTURE) {
+  if (flags & CAPTURE) {
     // Update castling rights if a rook was captured
-    switch (move.getTo()) {
+    switch (getSQVTo(m)) {
       case a1: _castlingRights &= ~0x2;
         break;
       case h1: _castlingRights &= ~0x1;
@@ -577,7 +578,7 @@ void Board::_updateCastlingRightsForMove(Move move) {
   }
 
   // Update castling flags if rooks or kings have moved
-  switch (move.getFrom()) {
+  switch (getSQVFrom(m)) {
     case e1: _castlingRights &= ~0x3;
       break;
     case e8: _castlingRights &= ~0xC;

@@ -340,32 +340,33 @@ Move Book::decodeMove(const Board &board, unsigned short move) {
 
   // Special case for castles
   if (fromSquare == e1 && toSquare == h1) { // White KS
-    return Move(e1, g1, KING, Move::KSIDE_CASTLE);
+    return Move(e1, g1, KING, KSIDE_CASTLE);
   } else if (fromSquare == e1 && toSquare == a1) { // White QS
-    return Move(e1, c1, KING, Move::QSIDE_CASTLE);
+    return Move(e1, c1, KING, QSIDE_CASTLE);
   } else if (fromSquare == e8 && toSquare == h8) { // Black KS
-    return Move(e8, g8, KING, Move::KSIDE_CASTLE);
+    return Move(e8, g8, KING, KSIDE_CASTLE);
   } else if (fromSquare == e8 && toSquare == a8) { // Black QS
-    return Move(e8, c8, KING, Move::QSIDE_CASTLE);
+    return Move(e8, c8, KING, QSIDE_CASTLE);
   }
 
-  Move decodedMove(fromSquare, toSquare, board.getPieceAtSquare(board.getActivePlayer(), fromSquare));
+  Move decodedMove(fromSquare, toSquare, board.getPieceAtSquare(board.getActivePlayer(), fromSquare), 0);
 
   // Capture info
   if (board.getAttackable(board.getInactivePlayer()) & (ONE << toSquare)) {
     PieceType capturedPiece = board.getPieceAtSquare(board.getInactivePlayer(), toSquare);
-    decodedMove.setFlag(Move::CAPTURE);
-    decodedMove.setCapturedPieceType(capturedPiece);
+    decodedMove.move = MoveUtils::setFlag(CAPTURE, decodedMove.move);
+    decodedMove.move = MoveUtils::setCapturedPieceType(capturedPiece, decodedMove.move);
   }
 
   // En passants
   if (board.getEnPassant() & (ONE << toSquare)) {
-    decodedMove.setFlag(Move::EN_PASSANT);
+    decodedMove.move = MoveUtils::setFlag(EN_PASSANT, decodedMove.move);
   }
 
   // Double pawn pushes
-  if (decodedMove.getPieceType() == PAWN && std::abs(fromSquare - toSquare) == 16) {
-    decodedMove.setFlag(Move::DOUBLE_PAWN_PUSH);
+  int m = decodedMove.move;
+  if (getPieceType(m) == PAWN && std::abs(fromSquare - toSquare) == 16) {
+    decodedMove.move = MoveUtils::setFlag(DOUBLE_PAWN_PUSH, decodedMove.move);
   }
 
   // Promotion info
@@ -383,8 +384,8 @@ Move Book::decodeMove(const Board &board, unsigned short move) {
       default: fatal("Invalid PolyGlot promotion piece");
     }
 
-    decodedMove.setFlag(Move::PROMOTION);
-    decodedMove.setPromotionPieceType(decodedPromotionPiece);
+    decodedMove.move = MoveUtils::setFlag(PROMOTION, decodedMove.move);
+    decodedMove.move = MoveUtils::setPromotionPieceType(decodedPromotionPiece, decodedMove.move);
   }
 
   return decodedMove;

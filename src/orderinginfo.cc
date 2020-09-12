@@ -27,7 +27,7 @@ int OrderingInfo::getPly() const {
 }
 
 void OrderingInfo::updateKillers(int ply, Move move) {
-  if (!(_killer1[ply] == move)){
+  if (!(_killer1[ply].move == move.move)){
       _killer2[ply] = _killer1[ply];
       _killer1[ply] = move;
   }

@@ -55,9 +55,10 @@ void setPosition(std::istringstream &is) {
 
     MoveGen movegen(board, false);
     for (auto move : movegen.getMoves()) {
-      if (move.getNotation() == token) {
+      int m = move.move;
+      if (MoveUtils::getNotation(m) == token) {
         board.doMove(move);
-        if ((move.getPieceType() == PAWN) || (move.getFlags() & Move::CAPTURE) ){
+        if ((getPieceType(m) == PAWN) || (getTypeFlag(m) & CAPTURE) ){
           positionHistory.clear();
         }
         positionHistory.push_back(board.getZKey());
@@ -69,7 +70,7 @@ void setPosition(std::istringstream &is) {
 
 void pickBestMove() {
   if (optionsMap["OwnBook"].getValue() == "true" && book.inBook(board)) {
-    std::cout << "bestmove " << book.getMove(board).getNotation() << std::endl;
+    std::cout << "bestmove " << MoveUtils::getNotation(book.getMove(board).move) << std::endl;
   } else {
     search->iterDeep();
   }
@@ -131,7 +132,7 @@ void perftDivide(int depth) {
     unsigned long long perftRes = perft(movedBoard, depth - 1);
     total += perftRes;
 
-    std::cout << move.getNotation() << ": " << perftRes << std::endl;
+    std::cout << MoveUtils::getNotation(move.move) << ": " << perftRes << std::endl;
   }
   auto end = std::chrono::steady_clock::now();
   std::chrono::duration<double> elapsed = end - start;
@@ -218,7 +219,7 @@ void loop() {
       std::cout << std::endl << board.getStringRep() << std::endl;
     } else if (token == "printmoves") {
       for (auto move : MoveGen(board, false).getLegalMoves()) {
-        std::cout << move.getNotation() << " ";
+        std::cout << MoveUtils::getNotation(move.move) << " ";
       }
       std::cout << std::endl;
     } else if (token == "perft") {

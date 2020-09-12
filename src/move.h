@@ -6,33 +6,29 @@
 #include <string>
 #include <vector>
 
-/**
- * @brief Represents a move.
- */
-class Move {
- public:
-  /**
-   * @brief Construct a null move.
-   */
-  Move();
+// Firsst define some macros for
+// fast move-processing
+
+#define getPieceType(m) static_cast<PieceType>(m & 0x7)
+#define getCapPiece(m)  static_cast<PieceType>((m >> 6) & 0x7)
+#define getPromoteTo(m) static_cast<PieceType>((m >> 3) & 0x7)
+#define getSQVFrom(m)   (uint)((m >> 9) & 0x3f)
+#define getSQVTo(m)     (uint)(((m >> 15) & 0x3f))
+#define getTypeFlag(m)  (uint)((m >> 21) & 0x7f)
+
 
   /**
-   * @brief Construct a move from and to the specified squares, and with the specified piece type and flags.
+   * @name Rank and file characters in algebraic notation
    *
-   * @param from  From square (little endian rank file mapping)
-   * @param to    To square (little endian rank file mapping)
-   * @param piece Type of piece
-   * @param flags Flags
+   * @{
    */
-  Move(unsigned int, unsigned int, PieceType, unsigned int= 0); // Non Null Move
+  const char RANKS[] = {'1', '2', '3', '4', '5', '6', '7', '8'};
+  const char FILES[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+  /**@}*/
 
+    /** @brief Notation that should be used to represent a null move */
+  const std::string NULL_MOVE_NOTATION = "(none)";
 
-  /**
-   * @brief Constructs a move from a single MOVE_INT
-   * 
-   * @param cMove Complete Move integer
-   */
-  Move(int cMove);
 
   /**
    * @enum Flag
@@ -48,133 +44,18 @@ class Move {
     PROMOTION = 1 << 6 /**< The move is a promotion (Promotion piece type must be set with setPromotionPieceType()) */
   };
 
-  /**
-   * @brief Returns an int containing this moves's flags.
-   * @return [description]
-   */
-  unsigned int getFlags() const;
+/**
+ * @brief Represents our Move
+ *
+ * Move contains 2 parts:
+ * 
+ * move -  the move INT itself
+ * score - score assigned to the move 
+ */
 
-  /**
-   * @brief Sets the specified flag on this move.
-   * @param flag Flag to set
-   */
-  void setFlag(Flag);
-
-  /**
-   * @brief Returns the piece type of this move.
-   *
-   * @return The type of piece being moved.
-   */
-  PieceType getPieceType() const;
-
-  /**
-   * @brief Returns The type of piece captured by this move (if it is a capture).
-   *
-   * Return value is undefined if move is not a capture.
-   *
-   * @return The type of piece captured by this move.
-   */
-  PieceType getCapturedPieceType() const;
-
-  /**
-   * @brief Set the type of piece captured by this move.
-   *
-   * Note that the CAPTURE flag should be set if this method is to be called.
-   *
-   * @param pieceType The type of captured piece to set
-   */
-  void setCapturedPieceType(PieceType);
-
-  /**
-   * @brief Returns this move's promotion piece type.
-   *
-   * Return value is undefined if move is not a promotion.
-   *
-   * @return the type of piece that this move promotes to.
-   */
-  PieceType getPromotionPieceType() const;
-
-  /**
-   * @brief Set the type of piece that this move promotes to.
-   *
-   * Note that the PROMOTION flag should be set if this method is to be called.
-   *
-   * @param pieceType The type of promotion piece to set
-   */
-  void setPromotionPieceType(PieceType);
-
-  /**
-   * @brief Get the value of this move
-   *
-   * @return The value of this move
-   */
-  int getValue();
-
-  /**
-   * @brief Set the value of this move
-   *
-   * @param value Value to set this move's value to
-   */
-  void setValue(int);
-
-  /**
-   * @brief Get move in the form of INT
-   */
-  int getMoveINT();
-
-  /**
-   * @brief Compare moves
-   *
-   * @return true if the moves are exactly the same, false otherwise
-   */
-  bool operator==(Move) const;
-
-  /**
-   * @brief Return the square that this move is from.
-   *
-   * Returned value is is 0 indexed little endian rank-file mapping.
-   *
-   * @return The square that this move is from.
-   */
-  unsigned int getFrom() const;
-
-  /**
-   * @brief Return the square that this move is to.
-   *
-   * Returned value is is 0 indexed little endian rank-file mapping.
-   *
-   * @return The square that this move is to.
-   */
-  unsigned int getTo() const;
-
-  /**
-   * @brief Return a UCI compliant string representation of this move.
-   * @return A UCI compliant string representation of this move.
-   */
-  std::string getNotation() const;
-
-  /**
-   * @brief Returns the index of a square on the chess board given its algebraic notation.
-   *
-   * Eg. notationToIndex("g1") would return 6
-   *
-   * @param  notation The algebraic notation of the square on the chess board to get the index for.
-   * @return The index of the square (little endian rank-file mapping)
-   */
-  static unsigned int notationToIndex(std::string);
-
-  /**
-   * @brief Returns the algebraic notation of a square on the chess board given its index.
-   *
-   * Eg. indexToNotation(6) would return "g1"
-   *
-   * @param  index Index to get algebraic notation for
-   * @return Algebraic notation of the square at the given index.
-   */
-  static std::string indexToNotation(int);
-
- private:
-  /**
+struct Move
+{
+    /**
    * @brief A packed integer containing all of the move data.
    *
    * 28 bits are used in total to store move information. The format is as
@@ -194,22 +75,76 @@ class Move {
    *
    * Moves are stored as a packed integer consisting of 28 bits total.
    */
-  unsigned int _move;
+    int move;
+    int score;
 
-  /** @brief Value of this move */
-  int _value;
+    Move() : move(0), score(0) {}
+    Move(int m) : move(m), score(0) {}
+    Move(int m, int sc) :
+        move(m), score(sc) {}
+
+    Move(unsigned int from, unsigned int to, PieceType piece, unsigned int flags) {
+      move = ((flags & 0x7f) << 21) | ((to & 0x3f) << 15) | ((from & 0x3f) << 9) | (piece & 0x7);
+      score = 0;
+    }
+};
+
+
+/**
+ * @brief Represents a move.
+ */
+namespace MoveUtils {
+ 
+  /**
+   * @brief Sets the specified flag on this move.
+   * @param flag Flag to set
+   */
+  int setFlag(Flag, int);
 
   /**
-   * @name Rank and file characters in algebraic notation
+   * @brief Set the type of piece captured by this move.
    *
-   * @{
+   * Note that the CAPTURE flag should be set if this method is to be called.
+   *
+   * @param pieceType The type of captured piece to set
    */
-  const static char RANKS[];
-  const static char FILES[];
-  /**@}*/
+  int setCapturedPieceType(PieceType, int);
 
-  /** @brief Notation that should be used to represent a null move */
-  const static std::string NULL_MOVE_NOTATION;
+  /**
+   * @brief Set the type of piece that this move promotes to.
+   *
+   * Note that the PROMOTION flag should be set if this method is to be called.
+   *
+   * @param pieceType The type of promotion piece to set
+   */
+  int setPromotionPieceType(PieceType, int);
+
+  /**
+   * @brief Return a UCI compliant string representation of this move.
+   * @return A UCI compliant string representation of this move.
+   */
+  std::string getNotation(int);
+
+  /**
+   * @brief Returns the index of a square on the chess board given its algebraic notation.
+   *
+   * Eg. notationToIndex("g1") would return 6
+   *
+   * @param  notation The algebraic notation of the square on the chess board to get the index for.
+   * @return The index of the square (little endian rank-file mapping)
+   */
+  unsigned int notationToIndex(std::string);
+
+  /**
+   * @brief Returns the algebraic notation of a square on the chess board given its index.
+   *
+   * Eg. indexToNotation(6) would return "g1"
+   *
+   * @param  index Index to get algebraic notation for
+   * @return Algebraic notation of the square at the given index.
+   */
+  std::string indexToNotation(int);
+
 };
 
 #endif

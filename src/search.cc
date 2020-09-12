@@ -110,7 +110,7 @@ void Search::iterDeep() {
     if (elapsed >= (_timeAllocated / 2)) break;
   }
 
-  if (_logUci) std::cout << "bestmove " << getBestMove().getNotation() << std::endl;
+  if (_logUci) std::cout << "bestmove " << MoveUtils::getNotation(getBestMove().move) << std::endl;
 }
 
 MoveList Search::_getPv(int length) {
@@ -134,7 +134,7 @@ MoveList Search::_getPv(int length) {
 void Search::_logUciInfo(const MoveList &pv, int depth, int bestScore, int nodes, int elapsed) {
   std::string pvString;
   for (auto move : pv) {
-    pvString += move.getNotation() + " ";
+    pvString += MoveUtils::getNotation(move.move)  + " ";
   }
 
   std::string scoreString;
@@ -248,13 +248,13 @@ void Search::_rootMax(const Board &board, int depth, int ply) {
   // alpha was not raised at any point, just pick the first move
   // avaliable (arbitrary) to avoid putting a null move in the
   // transposition table
-  if (bestMove.getFlags() & Move::NULL_MOVE) {
+  if (getTypeFlag(bestMove.move) & NULL_MOVE) {
     bestMove = legalMoves.at(0);
   }
 
 
   if (!_stop) {
-    myHASH.HASH_Store(board.getZKey().getValue(), bestMove.getMoveINT(), EXACT, alpha, depth, ply);
+    myHASH.HASH_Store(board.getZKey().getValue(), bestMove.move, EXACT, alpha, depth, ply);
     _bestMove = bestMove;
     _bestScore = alpha;
   }
@@ -340,7 +340,7 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
     statEVAL = Eval::evaluate(board, board.getActivePlayer());
   }
 
-  // 1. Reverse Futility
+  // REVERSE FUTILITY
   // The idea is so if we are very far ahead of beta at low
   // depth, we can just return estimated eval (eval - margin)
   // 
@@ -368,10 +368,25 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
 
   Move bestMove;
   int  LegalMoveCount = 0;
+  int qCount = 0; 
   // вероятно не самая эффективная конструкция, но оптимизация потом
   while (movePicker.hasNext()) {
 
     Move move = movePicker.getNext();
+
+    // LATE MOVE PRUNING
+    // Prune away late quiet moves at terminal nodes
+    // assuming they will bring to us nothing of value
+    // This assumes good move ordering
+    //
+    // Do not prune in PVnodes and if depth is higher than 3
+    // Formula for count from Weiss
+    bool isQuiet = !getTypeFlag(move.move);
+    if (!pvNode && depth < 4 && isQuiet && qCount > (3 + depth*depth)){
+      continue;
+    }
+
+
     Board movedBoard = board;
     movedBoard.doMove(move);
     bool doLMR = false;
@@ -380,8 +395,10 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
         LegalMoveCount++;
         int score;
 
+        // Various check-ups used for pruning later
         bool giveCheck = movedBoard.colorIsInCheck(movedBoard.getActivePlayer());
-        bool isQuiet = !move.getFlags();
+        if (isQuiet)
+          qCount++;
 
         // EXTENDED FUTILITY PRUNING
         // We try to pune a move, if depth is low (1 or 2)
@@ -393,12 +410,13 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
 
         if (!pvNode && Extension == 0 && LegalMoveCount > 1 && depth < 3 
         && !giveCheck && alpha < ((LOST_SCORE * -1) - 50)){
-          int moveGain = Eval::MATERIAL_VALUES[0][move.getCapturedPieceType()];
+          int moveGain = Eval::MATERIAL_VALUES[0][getCapPiece(move.move)];
           if (statEVAL + FUTIL_MOVE_CONST * depth + moveGain <= alpha){
               continue;
           }
         }
         _orderingInfo.incrementPly();
+        _positionHistory.push_back(board.getZKey());
 
         //LATE MOVE REDUCTIONS
         //mix of ideas from Weiss code and what is written in the chessprogramming wiki
@@ -456,24 +474,25 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
         }
 
         _orderingInfo.deincrementPly();
+        _positionHistory.pop_back();
         // Beta cutoff
         if (score >= beta) {
           // Add this move as a new killer move and update history if move is quiet
-          if (!(move.getFlags() & Move::CAPTURE)) {
+          if (!(getTypeFlag(move.move & CAPTURE))) {
           _orderingInfo.updateKillers(_orderingInfo.getPly(), move);
           }
 
           // Add a new tt entry for this node
           if (!_stop){
-            myHASH.HASH_Store(board.getZKey().getValue(), move.getMoveINT(), BETA, score, depth, ply);
+            myHASH.HASH_Store(board.getZKey().getValue(), move.move, BETA, score, depth, ply);
           }
           return beta;
         }
 
         // Check if alpha raised (new best move)
         if (score > alpha) {
-          if (!(move.getFlags() & Move::CAPTURE)){
-              _orderingInfo.incrementHistory(board.getActivePlayer(), move.getFrom(), move.getTo(), depth);
+          if (!(getTypeFlag(move.move) & CAPTURE)){
+              _orderingInfo.incrementHistory(board.getActivePlayer(), getSQVFrom(move.move), getSQVTo(move.move), depth);
           }
           alpha = score;
           bestMove = move;
@@ -492,16 +511,16 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
   // alpha was not raised at any point, just pick the first move
   // avaliable (arbitrary) to avoid putting a null move in the
   // transposition table
-  if (bestMove.getFlags() & Move::NULL_MOVE) {
+  if (getTypeFlag(bestMove.move & NULL_MOVE)) {
     bestMove = legalMoves.at(0);
   }
 
   // Store bestScore in transposition table
   if (!_stop){
       if (alpha <= alphaOrig) {
-        myHASH.HASH_Store(board.getZKey().getValue(), bestMove.getMoveINT(), ALPHA, alpha, depth, ply);
+        myHASH.HASH_Store(board.getZKey().getValue(), bestMove.move, ALPHA, alpha, depth, ply);
       } else {
-        myHASH.HASH_Store(board.getZKey().getValue(), bestMove.getMoveINT(), EXACT, alpha, depth, ply);
+        myHASH.HASH_Store(board.getZKey().getValue(), bestMove.move, EXACT, alpha, depth, ply);
       }
   }
 
@@ -550,7 +569,7 @@ int Search::_qSearch(const Board &board, int alpha, int beta, int ply) {
     Move move = movePicker.getNext();
 
     // DELTA MOVE PRUNING. Prune here if were are very far ahead.
-    int moveGain = Eval::MATERIAL_VALUES[0][move.getCapturedPieceType()];
+    int moveGain = Eval::MATERIAL_VALUES[0][getCapPiece(move.move)];
     if (standPat + moveGain + DELTA_MOVE_CONST < alpha)
       continue;
 
