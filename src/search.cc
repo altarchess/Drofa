@@ -369,6 +369,7 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
   int statEVAL = 0;
 
   AreWeInCheck = board.colorIsInCheck(board.getActivePlayer());
+  bool IsItEndGame = board.isEndGamePosition();
 
   // Go into the QSearch if depth is 0
   if (depth == 0 && !AreWeInCheck) {
@@ -432,7 +433,16 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
           movedBoard.doNool();
           int score = -_negaMax(movedBoard, depth - NULL_MOVE_REDUCTION - depth/4, -beta, -beta +1, ply + 1, true, 0);
           if (score >= beta){
-            return beta;
+            if (IsItEndGame && depth > 7){
+              Board cBoard = board;
+              int cScore = -_negaMax(movedBoard, depth - NULL_MOVE_REDUCTION - depth/4, -beta, -beta +1, ply + 1, true, pMove);
+              if (cScore >= score){
+                return beta;
+              }
+            }else{
+              return beta;              
+            }
+
           }
   }
 
@@ -495,7 +505,7 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
         // some pawn promotions near the leafs of the search tree
         // Thus we extend in the endgame pushes of the non-blocked 
         // passers that are near the middle of the board
-        if (depth < 5 && board.isEndGamePosition() && move.isItPasserPush(board)){
+        if (depth < 5 && IsItEndGame  && move.isItPasserPush(board)){
               tDepth++;
             }
         
