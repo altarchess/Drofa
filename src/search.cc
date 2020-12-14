@@ -435,7 +435,7 @@ int Search::_negaMax(const Board &board, int depth, int alpha, int beta, int ply
           if (score >= beta){
             if (IsItEndGame && depth > 7){
               Board cBoard = board;
-              int cScore = -_negaMax(movedBoard, depth - NULL_MOVE_REDUCTION - depth/4, -beta, -beta +1, ply + 1, true, pMove);
+              int cScore = -_negaMax(movedBoard, depth - NULL_MOVE_REDUCTION - depth/4, beta - 1, beta, ply + 1, true, pMove);
               if (cScore >= score){
                 return beta;
               }
