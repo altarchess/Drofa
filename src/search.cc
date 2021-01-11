@@ -474,8 +474,8 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
   //
   //
     int pcBeta = beta + PROBCUT_MARGIN;
-    if (!pvNode && depth >= 5 && !AreWeInCheck && (beta < WON_IN_X) 
-          && (statEVAL >= pcBeta)){
+    if (!pvNode && depth >= 5 && !AreWeInCheck && (abs(beta) < WON_IN_X) 
+          && (statEVAL >= beta || (statEVAL + board.MostFancyPieceCost() >= pcBeta))){
 
           // Init qSearch move generation (captures + qPromotions)
           MoveGen movegen(board, true);
@@ -492,7 +492,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
               // first check, capture must pass d0 search
               // skip this part if depth - 4 > 3, because its 
               // stupid to do d1 search to verify it with d2
-              int qProbcut = (depth - 4 < 3) ? pcBeta :  - _qSearch(board, -pcBeta, -pcBeta + 1, ply + 1); ;
+              int qProbcut = (depth - 4 < 5) ? pcBeta :  - _qSearch(board, -pcBeta, -pcBeta + 1, ply + 1);
 
               //if move passed first check, search this move at a reduced depth
               if (qProbcut >= pcBeta){
