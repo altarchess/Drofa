@@ -14,6 +14,7 @@ const int DELTA_MOVE_CONST = 200;
 const int FUTIL_MOVE_CONST = 150;
 const int REVF_MOVE_CONST = 200;
 const int RAZORING_MARGIN = 650;
+const int PROBCUT_MARGIN = 200;
 //
 
 //
@@ -466,6 +467,49 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
   // not worth searching
   if (depth >= 5 && !TTmove)
     depth--;
+
+
+  // 4. ProbCut
+  //
+  //
+  //
+    int pcBeta = beta + PROBCUT_MARGIN;
+    if (!pvNode && depth >= 5 && !AreWeInCheck && (beta < WON_IN_X) 
+          && (statEVAL >= pcBeta)){
+
+          // Init qSearch move generation (captures + qPromotions)
+          MoveGen movegen(board, true);
+          MoveList legalMoves = movegen.getMoves();
+          MovePicker movePicker
+              (&_orderingInfo, &legalMoves, board.getZKey().getValue(), board.getActivePlayer(), 99, 0);
+              
+          while (movePicker.hasNext()) {
+            Move move = movePicker.getNext();
+            Board movedBoard = board;
+            movedBoard.doMove(move);
+            if (!movedBoard.colorIsInCheck(movedBoard.getInactivePlayer())){
+
+              // first check, capture must pass d0 search
+              // skip this part if depth - 4 > 3, because its 
+              // stupid to do d1 search to verify it with d2
+              int qProbcut = (depth - 4 < 3) ? pcBeta :  - _qSearch(board, -pcBeta, -pcBeta + 1, ply + 1); ;
+
+              //if move passed first check, search this move at a reduced depth
+              if (qProbcut >= pcBeta){
+                int sProbcut = - _negaMax(movedBoard, &thisPV, depth - 4, -pcBeta, -pcBeta + 1, ply + 1, false, move.getMoveINT());
+                if (sProbcut >= pcBeta){
+                  return sProbcut;
+                }
+              }
+            }
+          }
+      }
+
+
+
+
+
+
 
   // No pruning occured, generate moves and recurse
   MoveGen movegen(board, false);
