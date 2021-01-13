@@ -474,7 +474,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
   //
   //
     int pcBeta = beta + PROBCUT_MARGIN;
-    if (!pvNode && depth >= 5 && !AreWeInCheck && (beta < WON_IN_X) 
+    if (!pvNode && depth >= 5 && !AreWeInCheck && (abs(beta) < WON_IN_X) 
           && (statEVAL >= pcBeta)){
 
           // Init qSearch move generation (captures + qPromotions)
