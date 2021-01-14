@@ -14,7 +14,7 @@ const int DELTA_MOVE_CONST = 200;
 const int FUTIL_MOVE_CONST = 150;
 const int REVF_MOVE_CONST = 200;
 const int RAZORING_MARGIN = 650;
-const int PROBCUT_MARGIN = 100;
+const int PROBCUT_MARGIN = 200;
 //
 
 //
@@ -475,7 +475,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
   //
     int pcBeta = beta + PROBCUT_MARGIN;
     if (!pvNode && depth >= 5 && !AreWeInCheck && (abs(beta) < WON_IN_X) 
-          && (statEVAL >= pcBeta)){
+          && (statEVAL >= pcBeta || (TTmove && probedHASHentry.score >= pcBeta))){
 
           // Init qSearch move generation (captures + qPromotions)
           MoveGen movegen(board, true);
