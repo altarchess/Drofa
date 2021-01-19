@@ -27,7 +27,7 @@ class OrderingInfo {
    * @param to To square to increment history for
    * @param depth Depth of move that caused this increment
    */
-  void incrementHistory(Color, int, int, int);
+  void incrementHistory(Color, int, int, int, bool);
 
   /**
    * @brief Lower history heuristic value of the board for 

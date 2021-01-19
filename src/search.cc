@@ -227,16 +227,16 @@ bool Search::_checkLimits() {
   return false;
 }
 
-inline void Search::_updateAlpha(const Move move, Color color, int depth){
+inline void Search::_updateAlpha(const Move move, Color color, int depth, bool pvNode){
   if (!(move.getFlags() & 0x63)){
-    _orderingInfo.incrementHistory(color, move.getFrom(), move.getTo(), depth);
+    _orderingInfo.incrementHistory(color, move.getFrom(), move.getTo(), depth, pvNode);
   }
 }
 
-inline void Search::_updateBeta(const Move move, Color color, int pMove, int ply, int depth){
+inline void Search::_updateBeta(const Move move, Color color, int pMove, int ply, int depth, bool pvNode){
 	if (!(move.getFlags() & 0x63)) {
     _orderingInfo.updateKillers(ply, move);
-    _orderingInfo.incrementHistory(color, move.getFrom(), move.getTo(), depth);
+    _orderingInfo.incrementHistory(color, move.getFrom(), move.getTo(), depth, pvNode);
     _orderingInfo.updateCounterMove(color, pMove, move.getMoveINT());
   }
 }
@@ -364,15 +364,15 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
         hashScore = (hashScore > 0) ? (hashScore - ply) :  (hashScore + ply);   
       }
       if (probedHASHentry.Flag == EXACT){
-        _updateAlpha(Move(probedHASHentry.move), board.getActivePlayer(), depth);
+        _updateAlpha(Move(probedHASHentry.move), board.getActivePlayer(), depth, pvNode);
         return hashScore;
       }
       if (probedHASHentry.Flag == ALPHA && hashScore <= alpha){ 
-        _updateAlpha(Move(probedHASHentry.move), board.getActivePlayer(), depth);
+        //_updateAlpha(Move(probedHASHentry.move), board.getActivePlayer(), depth);
         return alpha;
       }
       if (probedHASHentry.Flag == BETA && hashScore >= beta){
-        _updateBeta(Move(probedHASHentry.move), board.getActivePlayer(), pMove, ply, depth);
+        _updateBeta(Move(probedHASHentry.move), board.getActivePlayer(), pMove, ply, depth, pvNode);
         return beta;
       }
     }
@@ -626,7 +626,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
         // Beta cutoff
         if (score >= beta) {
           // Add this move as a new killer move and update history if move is quiet
-          _updateBeta(move, board.getActivePlayer(), pMove, ply, depth);
+          _updateBeta(move, board.getActivePlayer(), pMove, ply, depth, pvNode);
           // Add a new tt entry for this node
           if (!_stop){
             myHASH.HASH_Store(board.getZKey().getValue(), move.getMoveINT(), BETA, score, depth, ply);
@@ -645,7 +645,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
 
         // Check if alpha raised (new best move)
         if (score > alpha) {
-          _updateAlpha(move, board.getActivePlayer(), depth);
+          _updateAlpha(move, board.getActivePlayer(), depth, pvNode);
           alpha = score;
           bestMove = move;
           // we updated alpha and in the pVNode
