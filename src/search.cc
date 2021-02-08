@@ -735,8 +735,10 @@ int Search::_qSearch(const Board &board, int alpha, int beta, int ply) {
 
   MoveGen movegen(board, true);
   MoveList legalMoves = movegen.getMoves();
+  const HASH_Entry probedHASHentry = myHASH.HASH_Get(board.getZKey().getValue());
+  int hashMove = probedHASHentry.Flag != NONE ? probedHASHentry.move : 0;
   MovePicker movePicker
-      (&_orderingInfo, &legalMoves, 0, board.getActivePlayer(), 99, 0);
+      (&_orderingInfo, &legalMoves, hashMove, board.getActivePlayer(), 99, 0);
 
   // If node is quiet, just return eval
   if (!movePicker.hasNext()) {
