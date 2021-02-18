@@ -76,21 +76,12 @@ bool Move::isItPasserPush(const Board &board) const{
   int to = getTo();
   if (getPieceType() == PAWN &&
       ((board.getPieces(defColor, PAWN) & Eval::detail::PASSED_PAWN_MASKS[movingColor][to]) == ZERO) &&
-      ((board.getAllPieces(defColor) & (Eval::detail::PASSED_PAWN_MASKS[movingColor][to] ^ Eval::detail::NEIGHBOR_FILES[_col(to)])) == ZERO)){
+       (board.getAllPieces(defColor) & Eval::detail::BITS_SCAN_FORWARD[movingColor][to]) == ZERO){
         U64 mSqv = ONE << to;
-        switch (movingColor)
-        {
-        case WHITE:
-          if (mSqv & PASSER_ZONE_W){
+        U64 passerZone = movingColor == WHITE ? PASSER_ZONE_W : PASSER_ZONE_B;
+        if (mSqv & passerZone){
             return true;
           }
-          break;
-        case BLACK:
-          if (mSqv & PASSER_ZONE_B){
-            return true;
-          }
-          break;
-        }
       }
   return false;
 }

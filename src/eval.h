@@ -44,6 +44,7 @@ extern U64 FILES[8];
 extern U64 NEIGHBOR_FILES[8];
 extern U64 OUTPOST_MASK[2][64];
 extern U64 OUTPOST_PROTECTION[2][64];
+extern U64 BITS_SCAN_FORWARD[2][64];
 extern U64 KINGZONE[2][64];
 extern U64 PAWN_DUOS [64];
 extern U64 DISTANCE[64][64];
@@ -101,10 +102,10 @@ extern int PHASE_WEIGHT_SUM;
  * @brief Бонусы и штрафы за то, насколько король в опасности
  * 
  */ 
-const int KING_HIGH_DANGER = -17; // применять когда жив ферзь и мы не рокированы
-const int KING_MED_DANGER = -5;   // мы рокированы, но пешечный щит кривой
-const int KING_LOW_DANGER = 0;   // слабый пешечный щит
-const int KING_SAFE = 5;         // хороший пешечный щит
+const int KING_HIGH_DANGER = gS(-17, -17); // применять когда жив ферзь и мы не рокированы
+const int KING_MED_DANGER = gS(-5, -5);   // мы рокированы, но пешечный щит кривой
+const int KING_LOW_DANGER = gS( 0, 0);   // слабый пешечный щит
+const int KING_SAFE = gS(5, 5);         // хороший пешечный щит
 
 /**
  * @brief Bonuses given to a player having a move available (opening/endgame)
@@ -176,18 +177,16 @@ const int KING_PASSER_DISTANCE_ENEMY[9] = {
 
 /**
  * @brief Bonuses given to a player for each rook on an open file (opening/endgame)
+ * [0] - normal, [1] - outposted
  */
-const int ROOK_OPEN_FILE_BONUS = gS(50, 25);
+const int ROOK_OPEN_FILE_BONUS[2] = {gS(50, 25), gS(40, 15) };
 
 /**
  * @brief Bonuses given to a player for each rook on an open file (opening/endgame)
+ * [0] - normal, [1] - outposted
  */
-const int ROOK_SEMI_FILE_BONUS = gS (12, 37);
-
-/**
- * @brief Bonuses given to a player for each rook on an open file (opening/endgame)
- */
-const int ROOK_OUTPOSTED_LINE =  gS(-10, -10); 
+const int ROOK_SEMI_FILE_BONUS[2] = {gS (12, 37), gS ( 2, 17),};
+ 
 /**
  * @brief Bonuses given to a player for having a passed pawn (opening/endgame)
  */

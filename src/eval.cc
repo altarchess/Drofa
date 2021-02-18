@@ -44,6 +44,7 @@ U64 Eval::detail::NEIGHBOR_FILES[8]{
     FILE_G
 };
 U64 Eval::detail::PASSED_PAWN_MASKS[2][64];
+U64 Eval::detail::BITS_SCAN_FORWARD[2][64];
 U64 Eval::detail::OUTPOST_MASK[2][64];
 U64 Eval::detail::OUTPOST_PROTECTION[2][64];
 U64 Eval::detail::KINGZONE[2][64];
@@ -116,6 +117,9 @@ void Eval::init() {
 
     detail::OUTPOST_MASK[WHITE][square] = detail::PASSED_PAWN_MASKS[WHITE][square] & detail::NEIGHBOR_FILES[_col(square)];  
     detail::OUTPOST_MASK[BLACK][square] = detail::PASSED_PAWN_MASKS[BLACK][square] & detail::NEIGHBOR_FILES[_col(square)];  
+
+    detail::BITS_SCAN_FORWARD[WHITE][square] = detail::PASSED_PAWN_MASKS[WHITE][square] ^ detail::NEIGHBOR_FILES[_col(square)];
+    detail::BITS_SCAN_FORWARD[BLACK][square] = detail::PASSED_PAWN_MASKS[BLACK][square] ^ detail::NEIGHBOR_FILES[_col(square)];
 
     U64 sqv = ONE << square;
     detail::OUTPOST_PROTECTION[WHITE][square] = ((sqv >> 9) & ~FILE_H) | ((sqv >> 7) & ~FILE_A);
@@ -362,17 +366,10 @@ inline int Eval::evaluateROOK(const Board & board, Color color, evalBits * eB){
 
       if ( ((file & board.getPieces(color, PAWN)) == 0)
         && ((file & board.getPieces(otherColor, PAWN)) == 0)){
-            s += ROOK_OPEN_FILE_BONUS;    
-            if ((file & eB->OutPostedLines[otherColor]) != 0){
-              s += ROOK_OUTPOSTED_LINE; 
-            }
+          s += ROOK_OPEN_FILE_BONUS[((file & eB->OutPostedLines[otherColor]) != 0)];
       }
       else if ((file & board.getPieces(color, PAWN)) == 0){
-          s += ROOK_SEMI_FILE_BONUS;
-            if ((file & eB->OutPostedLines[otherColor]) != 0){
-              s += ROOK_OUTPOSTED_LINE; 
-            }
-
+          s += ROOK_SEMI_FILE_BONUS[((file & eB->OutPostedLines[otherColor]) != 0)];
       }
     }
 
@@ -399,10 +396,10 @@ inline int Eval::evaluateBISHOP(const Board & board, Color color, evalBits * eB)
       // OUTPOSTED BISHOP
       if ((board.getPieces(getOppositeColor(color), PAWN) & detail::OUTPOST_MASK[color][square]) == ZERO){
         if (detail::OUTPOST_PROTECTION[color][square] & board.getPieces(color, PAWN)){
-          s += gS(BISHOP_PROT_OUTPOST_OPENING[color][square], 0);
+          s += BISHOP_PROT_OUTPOST[color][square];
           eB->OutPostedLines[color] = eB->OutPostedLines[color] | detail::FILES[_col(square)];
         }else{
-          s += gS(BISHOP_OUTPOST_OPENING[color][square], 0);          
+          s += BISHOP_OUTPOST[color][square];          
         }
 
       }
@@ -431,10 +428,10 @@ inline int Eval::evaluateKNIGHT(const Board & board, Color color, evalBits * eB)
       // OUTPOSTED KNIGHT
       if ((board.getPieces(getOppositeColor(color), PAWN) & detail::OUTPOST_MASK[color][square]) == ZERO){
         if (detail::OUTPOST_PROTECTION[color][square] & board.getPieces(color, PAWN)){
-          s += gS(KNIGHT_PROT_OUTPOST_OPENING[color][square], 0);
+          s += KNIGHT_PROT_OUTPOST[color][square];
           eB->OutPostedLines[color] = eB->OutPostedLines[color] | detail::FILES[_col(square)];
         }else{
-          s += gS(KNIGHT_OUTPOST_OPENING[color][square], 0);         
+          s += KNIGHT_OUTPOST[color][square];         
         }
       }
     }
@@ -504,7 +501,6 @@ inline int Eval::evaluatePAWNS(const Board & board, Color color, evalBits * eB){
 int Eval::evaluate(const Board &board, Color color) {
 
   int score = 0;
-  int tmpint = 0;
 
   Color otherColor = getOppositeColor(color);
 
@@ -616,8 +612,7 @@ int Eval::evaluate(const Board &board, Color color) {
   // Tapering is included in, so we count it in both phases
   // As of 5.08.20 400 game testing did not showed advantage for any king safety implementation.
   // Changes commitet for further use though
-  tmpint = kingSafety(board, color, b_Q) - kingSafety(board, otherColor, w_Q);
-  score += gS(tmpint, tmpint);
+  score += kingSafety(board, color, b_Q) - kingSafety(board, otherColor, w_Q);
 
 
   // Calculation of the phase value
