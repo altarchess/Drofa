@@ -185,7 +185,7 @@ const int ROOK_OPEN_FILE_BONUS[2] = {gS(50, 25), gS(40, 15) };
  * @brief Bonuses given to a player for each rook on an open file (opening/endgame)
  * [0] - normal, [1] - outposted
  */
-const int ROOK_SEMI_FILE_BONUS[2] = {gS (12, 37), gS ( 2, 17),};
+const int ROOK_SEMI_FILE_BONUS[2] = {gS (12, 37), gS ( 2, 27),};
  
 /**
  * @brief Bonuses given to a player for having a passed pawn (opening/endgame)
