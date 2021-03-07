@@ -210,7 +210,7 @@ const int ISOLATED_PAWN_PENALTY = gS(-15, -30);
 /**
  * @brief Bonuses given to a player for having bishops on black and white squares (opening/endgame)
  */
-const int BISHOP_PAIR_BONUS = gS (20, 20);
+const int BISHOP_PAIR_BONUS = gS (30, 54);
 
 /**
  * @brief Initializes all inner constants used by functions in the Eval namespace
