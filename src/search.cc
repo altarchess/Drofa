@@ -518,11 +518,18 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
     // we suppose other moves wont improve our situation
     //
     // Weirdly working, searchdepth is way up, elo gain is not so great
-
     if (!pvNode && !AreWeInCheck 
       && qCount > _lmp_Array[depth][improving]
       && alpha < WON_IN_X ){
       break;
+    }
+    bool isQuiet = !(move.getFlags() & 0x63);
+    // SEE pruning for quiet moves
+    //
+    if (depth <= 2 && 
+        isQuiet &&
+        board.Calculate_SEE(move) < -250 * depth){
+      continue;
     }
 
     Board movedBoard = board;
@@ -534,7 +541,6 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
         int score;
 
         bool giveCheck = movedBoard.colorIsInCheck(movedBoard.getActivePlayer());
-        bool isQuiet = !(move.getFlags() & 0x63);
         int  moveHistory  = isQuiet ? _orderingInfo.getHistory(board.getActivePlayer(), move.getFrom(), move.getTo()) : 0;
         bool badHistory = (isQuiet && moveHistory < -3*depth*depth);                
         if (isQuiet)
