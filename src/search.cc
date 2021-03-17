@@ -507,7 +507,6 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
 
   Move bestMove;
   int  LegalMoveCount = 0;
-  int  qCount = 0;
   // вероятно не самая эффективная конструкция, но оптимизация потом
   while (movePicker.hasNext()) {
 
@@ -520,7 +519,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
     // Weirdly working, searchdepth is way up, elo gain is not so great
 
     if (!pvNode && !AreWeInCheck 
-      && qCount > _lmp_Array[depth][improving]
+      && LegalMoveCount > _lmp_Array[depth][improving]
       && alpha < WON_IN_X ){
       break;
     }
@@ -537,8 +536,6 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
         bool isQuiet = !(move.getFlags() & 0x63);
         int  moveHistory  = isQuiet ? _orderingInfo.getHistory(board.getActivePlayer(), move.getFrom(), move.getTo()) : 0;
         bool badHistory = (isQuiet && moveHistory < -3*depth*depth);                
-        if (isQuiet)
-          qCount++;
         int tDepth = depth;
         // 6. EXTENTIONS
         // 
