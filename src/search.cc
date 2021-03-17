@@ -529,7 +529,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
       if (depth <= 2 
           && LegalMoveCount > 1
           && isQuiet 
-          && board.Calculate_SEE(move) < -50 * depth) continue;
+          && board.Calculate_SEE(move) < -45 * depth) continue;
     }
 
     Board movedBoard = board;
