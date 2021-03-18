@@ -24,6 +24,7 @@ struct evalBits{
     U64 EnemyKingZone[2];
     U64 Passers[2];
     int RammedCount;
+    int EnemyKingSquare[2];
     int KingAttackers[2];
     int KingAttackPower[2];
 };
@@ -138,6 +139,7 @@ const int  QUEEN_MOBILITY[28] = {
            gS(11,43), gS(10,38), gS(21,28), gS(12,24), gS(20,23), gS(26,29), gS(24,26),
 };
 
+const int PIECE_CHECK_POWER[6] = {0, 65, 80, 35, 65, 0};
 const int PIECE_ATTACK_POWER[6] = {0, 40, 35, 20, 80, 0};
 const int COUNT_TO_POWER[8] = {0, 0, 50, 75, 80, 88, 95, 100};
 
