@@ -90,8 +90,8 @@ void Search::iterDeep() {
   _nodes = 0;
   selDepth = 0;
   _lastPlyTime = 0;
-  int aspWindow = 25;
-  int aspDelta  = 50;
+  int aspDelta  = 10;
+  int score;
 
   for (int currDepth = 1; currDepth <= _searchDepth; currDepth++) {
     _curMaxDepth = currDepth;
@@ -99,13 +99,15 @@ void Search::iterDeep() {
     int aspAlpha = LOST_SCORE;
     int aspBeta  =-LOST_SCORE;
     if (currDepth > 6){
-      aspAlpha = _bestScore - aspWindow;
-      aspBeta  = _bestScore + aspWindow;
+      aspAlpha = score - aspDelta;
+      aspBeta  = score + aspDelta;
     }
 
     while (true){
 
-    int score = _rootMax(_initialBoard, aspAlpha, aspBeta, currDepth, 0);
+    score = _rootMax(_initialBoard, aspAlpha, aspBeta, currDepth, 0);
+
+    aspDelta += aspDelta;
 
     if (_stop) break;
     if (score <= aspAlpha){
@@ -115,8 +117,6 @@ void Search::iterDeep() {
     }else{
       break;
     }
-
-    aspDelta += aspDelta * 2 / 3;
     }
 
 
