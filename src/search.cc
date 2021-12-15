@@ -388,7 +388,7 @@ int Search::_rootMax(const Board &board, int alpha, int beta, int depth) {
   return alpha;
 }
 
-int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int beta, bool sing) {
+int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int beta, bool sing, int* lmrFactor) {
 
   _nodes++;
   bool AreWeInCheck;
@@ -618,6 +618,11 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
               Board sBoard = board;
               int score = _negaMax(sBoard, &thisPV, sDepth, sBeta - 1, sBeta, true);
               if (sBeta > score){
+                if (lmrFactor != nullptr) {
+                  depth += *lmrFactor;
+                  tDepth += *lmrFactor;
+                  *lmrFactor = 0;
+                }
                 tDepth += 1 + failedNull;
               }
             }
@@ -689,7 +694,10 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
 
           //Search with reduced depth around alpha in assumtion
           // that alpha would not be beaten here
-          score = -_negaMax(movedBoard, &thisPV, fDepth, -alpha - 1 , -alpha, false);
+          score = -_negaMax(movedBoard, &thisPV, fDepth, -alpha - 1 , -alpha, false, &reduction);
+
+          doLMR = reduction > 0;
+
         }
 
         // Code here is restructured based on Weiss
