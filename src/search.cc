@@ -640,11 +640,12 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
 
         // 8. LATE MOVE REDUCTIONS
         // mix of ideas from Weiss code, own ones and what is written in the chessprogramming wiki
+
+        //Basic reduction is done according to the array
+        int reduction = _lmr_R_array[std::min(33, tDepth)][std::min(33, LegalMoveCount)];
+
         doLMR = tDepth > 2 && LegalMoveCount > 2 + pvNode;
         if (doLMR){
-
-          //Basic reduction is done according to the array
-          int reduction = _lmr_R_array[std::min(33, tDepth)][std::min(33, LegalMoveCount)];
 
           // Reduction tweaks
           // We generally want to guess if the move will not improve alpha and guess right to do no re-searches
@@ -696,8 +697,6 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
           // that alpha would not be beaten here
           score = -_negaMax(movedBoard, &thisPV, fDepth, -alpha - 1 , -alpha, false, &reduction);
 
-          doLMR = reduction > 0;
-
         }
 
         // Code here is restructured based on Weiss
@@ -708,7 +707,7 @@ int Search::_negaMax(const Board &board, pV *up_pV, int depth, int alpha, int be
         // and if we are searching 2nd move and so on we already did full window search -
         // So for both of this cases we do limited window search.
         if (doLMR){
-          if (score > alpha){
+          if (score > alpha && reduction){
             score = -_negaMax(movedBoard, &thisPV, tDepth - 1, -alpha - 1, -alpha, false);
           }
         } else if (!pvNode || LegalMoveCount > 1){
